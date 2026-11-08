@@ -1,0 +1,443 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Quasimorph Loadout Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: an armoury bench. Mission and kit on the left, a sticky readout on the right, the weakness grid underneath. Deliberately single-theme dark. */
+:root {
+  color-scheme: dark;
+  --bg: #17151f; --panel: #221f2c; --raised: #2d2939; --line: #443e54;
+  --fg: #ece6da; --muted: #aaa3b5;
+  --brass: #e0b05a; --on-brass: #231a08;
+  --good: #58c9b4; --warn: #e9a04f; --bad: #ef7b86;
+  --display: "Saira Stencil One", Impact, "Arial Narrow", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.45 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
+h1 { font: 400 clamp(1.9rem, 5vw, 2.8rem)/1 var(--display); margin: 0; color: var(--brass); letter-spacing: .02em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 46ch; }
+h2 { font: 600 .8rem/1.2 var(--mono); text-transform: uppercase; letter-spacing: .12em; margin: 0; color: var(--brass); }
+.bench { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.col { display: grid; gap: 20px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.readout { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+button, select, input[type=text] { font: inherit; color: var(--fg); background: var(--raised); border: 1px solid var(--line); min-height: 40px; padding: 6px 10px; border-radius: 2px; }
+select, input[type=text] { width: 100%; min-width: 0; }
+button { cursor: pointer; }
+button:hover { border-color: var(--brass); }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+button.primary { background: var(--brass); color: var(--on-brass); border-color: var(--brass); font-weight: 600; }
+button.quiet { background: none; color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.target { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+.tech { display: flex; align-items: center; gap: 2px; font: 600 .9rem var(--mono); }
+.tech button { width: 40px; padding: 0; }
+.tech output { min-width: 58px; text-align: center; font-variant-numeric: tabular-nums; }
+.tech.na { color: var(--muted); font-weight: 400; font-size: .8rem; min-width: 138px; justify-content: center; }
+.note { grid-column: 1 / -1; color: var(--warn); font-size: .9rem; margin: 0; }
+a { color: var(--brass); }
+.brief { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px 32px; border-block: 1px solid var(--brass); padding-block: 12px; }
+.brief p { margin: 4px 0 0; font: 400 1.5rem/1.2 var(--display); }
+.rec { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rec-label { font: 400 .8rem var(--mono); color: var(--muted); margin-right: 4px; }
+.slot { display: grid; grid-template-columns: 104px minmax(0, 220px); gap: 8px; align-items: center; }
+.slot label { font: 400 .8rem var(--mono); color: var(--muted); }
+.slot-warn { grid-column: 2 / -1; margin: -2px 0 2px; font-size: .9rem; color: var(--bad); }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.toggle { font: 400 .8rem var(--mono); padding: 4px 10px; min-height: 40px; }
+.toggle[aria-pressed=true] { background: var(--brass); color: var(--on-brass); border-color: var(--brass); font-weight: 600; }
+.hint { color: var(--muted); font-size: .9rem; margin: 0; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stat b { display: block; font: 400 2.5rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.stat span { font: 400 .8rem var(--mono); color: var(--muted); }
+.meter { height: 6px; background: var(--raised); margin-top: 6px; }
+.meter i { display: block; height: 100%; background: var(--brass); }
+.tlist { display: grid; gap: 0; }
+.tline { display: grid; grid-template-columns: minmax(0, 1fr) 76px 56px; gap: 8px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: .95rem; }
+.tline small { display: block; color: var(--muted); font: 400 .75rem var(--mono); overflow-wrap: anywhere; }
+.badge { font: 600 .72rem var(--mono); text-transform: uppercase; text-align: center; padding: 3px 4px; border: 1px solid currentColor; }
+.g-strong { color: var(--good); } .g-ok { color: var(--warn); } .g-poor { color: var(--bad); } .g-none { color: var(--muted); }
+.cover { font: 400 .85rem var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.advice { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: .95rem; }
+.grid-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: .85rem; font-variant-numeric: tabular-nums; }
+th, td { border-bottom: 1px solid var(--line); padding: 3px 8px; text-align: center; white-space: nowrap; }
+thead th { font-weight: 400; color: var(--muted); font-size: .75rem; white-space: normal; min-width: 92px; vertical-align: bottom; padding-bottom: 8px; }
+tbody th, thead th:first-child { text-align: left; position: sticky; left: 0; background: var(--panel); min-width: 118px; padding-left: 0; }
+tbody th button { width: 100%; text-align: left; font-family: var(--mono); font-size: .85rem; background: none; border-color: transparent; min-height: 36px; }
+tbody th button:hover { border-color: var(--brass); }
+tr.mine th button { color: var(--brass); font-weight: 600; }
+.pips { color: var(--good); letter-spacing: 2px; }
+.imm { color: var(--bad); font-weight: 600; } .res { color: var(--warn); } .nil { color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 18px; font: 400 .8rem var(--mono); color: var(--muted); }
+.saved { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; }
+.chip button:first-child { border-right: 0; }
+.save-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+#copyOut { width: 100%; height: 130px; background: var(--raised); color: var(--fg); border: 1px solid var(--line); font: 400 .8rem var(--mono); }
+footer { color: var(--muted); font-size: .9rem; max-width: 75ch; }
+#status { min-height: 1.3em; color: var(--brass); font-size: .9rem; margin: 0; }
+@media (max-width: 800px) {
+  .bench { grid-template-columns: minmax(0, 1fr); }
+  .readout { position: static; }
+}
+@media (max-width: 480px) {
+  .target { grid-template-columns: minmax(0, 1fr) auto; }
+  .target select { grid-column: 1 / -1; }
+  .slot { grid-template-columns: 104px minmax(0, 1fr); }
+  .slot-warn { grid-column: 1 / -1; }
+  .save-row { grid-template-columns: 1fr 1fr; }
+  .save-row input { grid-column: 1 / -1; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Loadout Bench</h1>
+    <p>Choose who you're fighting and their tech level. Then build a kit that hits their weak points and covers what they shoot back with.</p>
+  </header>
+
+  <section id="brief" class="brief" aria-live="polite"></section>
+
+  <div class="bench">
+    <div class="col">
+      <section class="panel">
+        <div class="panel-head"><h2>Mission targets</h2><button id="addTarget" type="button">Add target</button></div>
+        <div id="targets" class="col" style="gap:10px"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Damage you bring</h2>
+          <div class="row"><button id="suggest" class="primary" type="button">Suggest for empty slots</button><button id="clear" class="quiet" type="button">Clear kit</button></div>
+        </div>
+        <div id="recW" class="rec"></div>
+        <div id="slots" style="display:grid;gap:8px"></div>
+        <div class="row"><button id="servo" class="toggle" type="button" aria-pressed="false">Third weapon slot</button><span class="hint">Turn on if your backpack adds one, such as Helper or Archangel.</span></div>
+      </section>
+
+      <section class="panel">
+        <h2>Armour resists</h2>
+        <p class="hint">Turn on each type your armour resists well. Fire plus Cold also counts as Entropy cover.</p>
+        <div id="recA" class="rec"></div>
+        <div id="armour" class="toggles"></div>
+      </section>
+    </div>
+
+    <aside class="panel readout" aria-live="polite">
+      <h2>Readout</h2>
+      <div id="readout" style="display:grid;gap:14px"></div>
+    </aside>
+  </div>
+
+  <section class="panel">
+    <h2>Weakness grid</h2>
+    <p class="hint">Best damage types are at the top. Click a type to put it in your next empty slot.</p>
+    <div class="grid-wrap"><table id="grid"></table></div>
+    <div class="legend"><span><span class="pips">●●●</span> strong</span><span><span class="pips">●</span> older armour only</span><span>– no listed weakness</span><span class="res">RES high resistance</span><span class="imm">IMM immune</span><span class="res">? sources disagree or only one lists it</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Saved kits</h2>
+    <div class="save-row">
+      <input id="saveName" type="text" placeholder="Kit name" aria-label="Kit name" maxlength="40">
+      <button id="save" type="button">Save kit</button>
+      <button id="copy" type="button">Copy summary</button>
+    </div>
+    <p id="status" role="status"></p>
+    <textarea id="copyOut" readonly hidden aria-label="Kit summary"></textarea>
+    <div id="saved" class="saved"></div>
+  </section>
+
+  <footer>Faction data comes from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3782650241" target="_blank" rel="noopener">DettLove's Steam guide</a>, checked against the <a href="https://quasimorph.wiki.gg/wiki/Factions" target="_blank" rel="noopener">official Quasimorph wiki</a>. Where they differ, trust the in-game item and enemy details. Grades are a rule of thumb with the newest armour tier counted most. They aren't the game's damage formula. Enemies can carry weapons or armour outside their faction's list, so keep a backup damage type.</footer>
+</div>
+
+<script>
+const TYPES = ['BLUNT','PIERCE','CUT','FIRE','COLD','POISON','SHOCK','RAD','PLASMA','ENTROPY','EXPLOSIVE','CRYO-RAD'];
+const ARMOUR = ['BLUNT','PIERCE','CUT','FIRE','COLD','POISON','SHOCK','RAD'];
+const WIKI = 'https://quasimorph.wiki.gg/wiki/';
+const label = t => t[0] + t.slice(1).toLowerCase();
+const CORP = 'Corporations', QUASI = 'Quasi corps', BRAM = 'Bramfaturas';
+const DATA = [
+ {n:'AnCom',g:CORP,v:['1 BLUNT FIRE SHOCK RAD','5 BLUNT PIERCE POISON SHOCK','7 CUT FIRE COLD SHOCK'],d:['1 PIERCE CUT','5 COLD','7 SHOCK']},
+ {n:'SBN',g:CORP,v:['3 BLUNT FIRE COLD POISON','4 BLUNT CUT','8 CUT COLD POISON'],d:['1 RAD','2 PIERCE','5 PLASMA']},
+ {n:'RealWare',g:CORP,v:['1 CUT COLD POISON RAD','5 COLD POISON SHOCK RAD','6 COLD SHOCK RAD','9 COLD POISON'],d:['1 BLUNT PIERCE CUT','8 PLASMA']},
+ {n:'Dilthey',g:CORP,v:['3 BLUNT RAD','5 BLUNT PIERCE CUT COLD SHOCK','8 POISON'],d:['1 BLUNT SHOCK','4 PIERCE','7 ENTROPY'],notes:[{min:4,text:'Warhead robots: weak to Pierce and Shock.'},{min:5,text:'Drones: high evasion, weak to Blunt, Pierce, Cut, Shock and Rad.'},{min:6,text:'Hell robots: weak to Pierce and Cut.'}]},
+ {n:'Tianming',g:CORP,v:['2 PIERCE FIRE COLD SHOCK RAD','4 FIRE COLD RAD','7 CUT FIRE COLD','8 POISON SHOCK'],d:['1 BLUNT CUT']},
+ {n:'Daydream Chem',g:CORP,v:['1 BLUNT FIRE SHOCK RAD','4 BLUNT PIERCE CUT FIRE SHOCK RAD','5 PIERCE RAD','6 FIRE RAD','9 FIRE SHOCK'],d:['1 POISON','3 COLD']},
+ {n:'PlanetBridge',g:CORP,v:['1 PIERCE COLD POISON RAD','3 PIERCE FIRE POISON RAD','6 POISON RAD'],d:['1 PIERCE','4 SHOCK']},
+ {n:'Grasshopper Technologies',g:CORP,v:['1-7 FIRE SHOCK RAD','8 POISON SHOCK'],d:['1 PIERCE','9 FIRE']},
+ {n:'Sunlight Coven',g:CORP,v:['1 BLUNT COLD SHOCK','9 BLUNT CUT'],d:['1 CUT RAD','4 PLASMA']},
+ {n:'Franche-Comte PS',g:CORP,v:['1-4 FIRE COLD POISON','5-6 FIRE COLD POISON SHOCK','7 COLD POISON RAD'],d:['1 BLUNT CUT','3 SHOCK','9 PIERCE']},
+ {n:'Coreward MG',g:CORP,v:['1 POISON SHOCK RAD','3 PIERCE COLD POISON SHOCK RAD','5 CUT SHOCK','7 SHOCK'],d:['1 PIERCE CUT','2 FIRE','3 RAD','5 PLASMA']},
+ {n:'Church of Revelation',g:CORP,v:['1 PIERCE FIRE POISON SHOCK','9 BLUNT POISON'],d:['1 CUT','3 PIERCE BLUNT','4 PLASMA']},
+ {n:'Civil Resistance',g:CORP,v:['1 COLD POISON SHOCK RAD','4 BLUNT POISON SHOCK','8 COLD POISON SHOCK'],d:['1 BLUNT PIERCE CUT FIRE','5 PLASMA']},
+ {n:'Unchained Belt',g:CORP,v:['3 BLUNT FIRE COLD SHOCK RAD','4 POISON SHOCK','6 SHOCK','7 COLD SHOCK RAD','8 COLD POISON SHOCK RAD'],d:['1 BLUNT CUT','3 PIERCE']},
+ {n:'Tezctlan (Gannix)',g:QUASI,v:['1 PIERCE FIRE SHOCK RAD','3 CUT FIRE SHOCK RAD','5 PIERCE COLD SHOCK RAD','7 PIERCE SHOCK RAD'],d:['1 BLUNT PIERCE CUT ENTROPY']},
+ {n:'Feathered Masks (Gannix)',g:QUASI,v:['1 PIERCE FIRE SHOCK RAD','4 CUT FIRE SHOCK RAD','5 PIERCE FIRE COLD SHOCK','7 CUT SHOCK RAD'],d:['1 BLUNT PIERCE CUT ENTROPY']},
+ {n:"Shedu's Thousand (Ur)",g:QUASI,v:['2 BLUNT POISON SHOCK RAD','4 CUT COLD POISON RAD','5 PIERCE COLD','7 COLD SHOCK RAD'],d:['1 CUT PIERCE BLUNT','7 PLASMA']},
+ {n:'Venus and satellites (Gannix)',g:BRAM,imm:'POISON',res:'BLUNT',weak:'SHOCK',d:'BLUNT CUT PIERCE POISON ENTROPY'},
+ {n:'Mars and satellites (Ur)',g:BRAM,imm:'FIRE',res:'BLUNT PIERCE CUT',weak:'COLD POISON SHOCK RAD',d:'CUT FIRE PLASMA'},
+ {n:'Mercury and satellites (Shartamakhum)',g:BRAM,imm:'RAD',res:'FIRE COLD',weak:'BLUNT SHOCK',d:'CUT RAD'},
+ {n:'Moon and Fuller (Duggur)',g:BRAM,imm:'CUT',res:'BLUNT PIERCE FIRE SHOCK',weak:'COLD POISON RAD',d:'BLUNT PIERCE CUT'},
+ {n:'Pallas, Vesta, Annagerman (Ron)',g:BRAM,imm:'SHOCK',res:'BLUNT POISON RAD',weak:'PIERCE CUT FIRE COLD',d:'PIERCE CUT SHOCK'},
+ {n:'Wernher, Hungaria, Ceres (Cattaram)',g:BRAM,imm:'RAD',res:'PIERCE CUT FIRE',weak:'POISON SHOCK',d:'BLUNT PIERCE'},
+ {n:'Hygiea, Geist, Interamnia (Scrivnus)',g:BRAM,imm:'BLUNT',res:'PIERCE FIRE COLD',weak:'SHOCK RAD',d:'PIERCE CUT'},
+ {n:'Jupiter and satellites (Flauros)',g:BRAM,imm:'POISON',res:'PIERCE COLD RAD',weak:'CUT FIRE',d:'PIERCE POISON'},
+ {n:'Saturn and satellites (Olirna)',g:BRAM,imm:'COLD',res:'BLUNT PIERCE CUT FIRE RAD',weak:'POISON SHOCK',d:'COLD CRYO-RAD'}
+];
+const byName = n => DATA.find(f => f.n === n);
+/* Fact check against the official wiki. status: ok, diff or none. "one" = only one source calls it a weakness. "flag" = guide lists a weakness the wiki disputes. */
+const FACTS = {
+ 'AnCom':{s:'diff',p:'AnCom',flag:'PIERCE RAD',t:'Fire and Shock weaknesses agree. The wiki says AnCom armour mainly protects against Pierce and somewhat against Rad, which the guide lists as weaknesses. It also calls Cut the best physical type.'},
+ 'SBN':{s:'diff',p:'SBN',flag:'COLD POISON',t:'Fire weakness agrees. The wiki says SBN armour focuses on Cold, Poison and Rad, but the guide lists Cold and Poison as weaknesses. The wiki also says SBN has no Entropy protection.'},
+ 'RealWare':{s:'diff',p:'RealWare',flag:'CUT POISON SHOCK',t:'Cold weakness agrees. The wiki says armour can cover Cut, Poison and Shock, and adds Entropy as a weakness. It also lists Fire and Explosive as common enemy damage.'},
+ 'Dilthey':{s:'none',p:'Dilthey',t:'The wiki confirms Security Drones at tech 5 but lists no resistances or damage types.'},
+ 'Tianming':{s:'diff',p:'Tianm%C3%ACng',t:'Weaknesses are blank on the wiki. For enemy damage it lists Cut, Explosive and Poison, plus rare Shock. The guide lists Blunt and Cut.'},
+ 'Daydream Chem':{s:'none',p:'Daydream_Chems',t:'The wiki page has no combat data.'},
+ 'PlanetBridge':{s:'none',p:'PlanetBridge',t:'The wiki page has no combat data.'},
+ 'Grasshopper Technologies':{s:'none',p:'Grasshopper_Technologies',t:'The wiki page has no combat data.'},
+ 'Sunlight Coven':{s:'ok',p:'Sunlight_Coven',t:'The wiki only says armour mainly protects against Pierce. The guide does not list Pierce as a weakness, so they agree.'},
+ 'Franche-Comte PS':{s:'diff',p:'Franche-Comte_PS',flag:'SHOCK',t:'Poison and Rad weaknesses agree. The wiki says armour protects against Shock, which the guide lists as a weakness at tech 5-6. It also calls Pierce the best physical type.'},
+ 'Coreward MG':{s:'none',p:'Coreward_MG',t:'The wiki lists items by tech level but no resistances or damage types.'},
+ 'Church of Revelation':{s:'diff',p:'Church_of_Revelation',t:'Weaknesses are blank on the wiki. It agrees on Cut, Plasma and Pierce damage, and adds Fire, which the guide omits.'},
+ 'Civil Resistance':{s:'none',p:'Civil_Resistance',t:'The wiki page has no combat data.'},
+ 'Unchained Belt':{s:'none',p:'Unchained_Belt',t:'The wiki page has no combat data.'},
+ 'Tezctlan (Gannix)':{s:'diff',p:'Tezctlan',imm:'POISON',t:'Shock weakness and Entropy damage agree. The wiki adds full Poison immunity, now applied here.'},
+ 'Feathered Masks (Gannix)':{s:'diff',p:'Feathered_Masks',imm:'POISON',t:'Shock weakness and Entropy weapons agree. The wiki adds Poison immunity, now applied here.'},
+ "Shedu's Thousand (Ur)":{s:'diff',p:'Shedu%27s_Thousand',flag:'BLUNT PIERCE CUT',res:'FIRE',t:'The wiki says high physical resistance and often Fire immunity or resistance. The guide lists Blunt, Pierce and Cut as weaknesses at some tech levels.'},
+ 'Venus and satellites (Gannix)':{s:'diff',p:'Gannix',imm:'POISON',res:'BLUNT CUT FIRE',weak:'SHOCK',one:'',t:'Poison immunity and Shock weakness agree. The wiki adds high resistance to Cut and Fire, now applied here.'},
+ 'Mars and satellites (Ur)':{s:'diff',p:'Ur',imm:'FIRE',res:'BLUNT PIERCE CUT PLASMA EXPLOSIVE',weak:'COLD POISON',one:'SHOCK RAD ENTROPY',t:'Cold and Poison agree. Only the guide lists Shock and Rad, and only the wiki lists Entropy.'},
+ 'Mercury and satellites (Shartamakhum)':{s:'diff',p:'Shartamakhum',imm:'RAD',res:'FIRE COLD ENTROPY',weak:'BLUNT',one:'SHOCK POISON',t:'Blunt agrees. The guide says Shock and the wiki says Poison.'},
+ 'Moon and Fuller (Duggur)':{s:'diff',p:'Duggur',imm:'CUT',res:'BLUNT PIERCE FIRE SHOCK',weak:'POISON RAD',one:'COLD',t:'Poison and Rad agree. Only the guide lists Cold as a weakness, and Fire and Shock as resistances.'},
+ 'Pallas, Vesta, Annagerman (Ron)':{s:'diff',p:'Ron',imm:'SHOCK',res:'BLUNT POISON RAD',weak:'PIERCE FIRE',one:'CUT COLD ENTROPY EXPLOSIVE',t:'Pierce and Fire agree. Only the guide lists Cut and Cold, and only the wiki lists Entropy and Explosive.'},
+ 'Wernher, Hungaria, Ceres (Cattaram)':{s:'ok',p:'Cattaram',imm:'RAD',res:'PIERCE CUT FIRE PLASMA',weak:'POISON SHOCK',one:'BLUNT COLD ENTROPY EXPLOSIVE',t:'All guide entries agree. The wiki adds Plasma resistance and lesser weaknesses to Blunt, Cold, Entropy and Explosive.'},
+ 'Hygiea, Geist, Interamnia (Scrivnus)':{s:'ok',p:'Scrivnus',imm:'BLUNT',res:'PIERCE FIRE COLD ENTROPY EXPLOSIVE',weak:'SHOCK RAD',one:'',t:'All guide entries agree. The wiki adds Entropy and Explosive resistance.'},
+ 'Jupiter and satellites (Flauros)':{s:'diff',p:'Flauros',imm:'POISON',res:'PIERCE COLD RAD',weak:'',one:'CUT FIRE',t:'Immunity and resistances agree. The wiki lists no weaknesses, so Cut and Fire come only from the guide.'},
+ 'Saturn and satellites (Olirna)':{s:'diff',p:'Olirna',imm:'COLD',res:'BLUNT PIERCE CUT RAD PLASMA ENTROPY EXPLOSIVE',weak:'POISON SHOCK',one:'',conflict:'FIRE',t:'Poison and Shock agree. The guide says high Fire resistance, but the wiki says a lesser Fire weakness.'}
+};
+DATA.forEach(f => Object.assign(f, FACTS[f.n]));
+const words = s => (s || '').split(' ').filter(Boolean);
+const parseTier = s => { const m = s.match(/^(\d+)(?:-(\d+))?\s+(.*)$/); return {min:+m[1], max:m[2]?+m[2]:Infinity, types:m[3].split(' ')}; };
+
+function profile(target) {
+  const f = byName(target.f), scores = {}, state = {}, unsure = {};
+  TYPES.forEach(t => { scores[t] = 0; state[t] = 'none'; });
+  if (f.g === BRAM) {
+    TYPES.forEach(t => { scores[t] = .25; state[t] = 'neutral'; });
+    words(f.weak).forEach(t => { scores[t] = 1; state[t] = 'weak'; });
+    words(f.one).forEach(t => { scores[t] = .6; state[t] = 'weak'; unsure[t] = 1; });
+    words(f.res).forEach(t => { scores[t] = .1; state[t] = 'res'; });
+    words(f.conflict).forEach(t => { scores[t] = .25; state[t] = 'disp'; unsure[t] = 1; });
+    words(f.imm).forEach(t => { scores[t] = 0; state[t] = 'imm'; });
+    return {f, scores, state, unsure, incoming:f.d.split(' '), hasData:true, notes:[]};
+  }
+  const tiers = f.v.map(parseTier).filter(r => r.min <= target.t && target.t <= r.max).sort((a,b) => b.min - a.min);
+  let total = 0;
+  tiers.forEach((r, i) => { const w = Math.pow(.6, i); total += w; r.types.forEach(t => scores[t] += w); });
+  if (total) TYPES.forEach(t => { scores[t] /= total; if (scores[t] > 0) state[t] = 'weak'; });
+  words(f.flag).forEach(t => { if (scores[t] > 0) { scores[t] *= .5; unsure[t] = 1; } });
+  words(f.res).forEach(t => { scores[t] = 0; state[t] = 'res'; });
+  words(f.imm).forEach(t => { scores[t] = 0; state[t] = 'imm'; });
+  const incoming = [...new Set(f.d.map(parseTier).filter(r => r.min <= target.t).flatMap(r => r.types))];
+  return {f, scores, state, unsure, incoming, hasData:tiers.length > 0, notes:(f.notes||[]).filter(x => x.min <= target.t)};
+}
+const grade = s => s >= .6 ? ['Strong','g-strong'] : s >= .3 ? ['Workable','g-ok'] : ['Poor','g-poor'];
+const pips = s => s >= .66 ? 3 : s >= .33 ? 2 : s > 0 ? 1 : 0;
+
+const SLOTS = ['Weapon 1','Weapon 2','Third weapon'];
+const EXAMPLE = () => ({targets:[{f:'Coreward MG',t:5},{f:'Mars and satellites (Ur)',t:5}], slots:[{name:'',type:'SHOCK'},{name:'',type:''},{name:'',type:''}], servo:false, armour:['PIERCE','CUT']});
+const KEY = 'qm-bench-v1';
+function normal(k) {
+  const known = k.servo !== undefined, slots = (k.slots || []).slice(0, known ? 3 : 2);
+  while (slots.length < 3) slots.push({name:'', type:''});
+  return {...k, slots, servo:!!k.servo, armour:(k.armour || []).filter(t => ARMOUR.includes(t))};
+}
+const activeSlots = () => S.slots.slice(0, S.servo ? 3 : 2);
+const covered = t => S.armour.includes(t) || (t === 'ENTROPY' && S.armour.includes('FIRE') && S.armour.includes('COLD'));
+const coverable = p => p.incoming.filter(t => ARMOUR.includes(t) || t === 'ENTROPY');
+function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function load(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+let S = normal(load(KEY) || EXAMPLE());
+let kits = (load(KEY + '-kits') || []).map(normal);
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const say = m => { $('status').textContent = m; };
+
+function bestFor(p, types) { return types.reduce((b, t) => p.scores[t] > b.s ? {s:p.scores[t], t} : b, {s:0, t:null}); }
+const chosen = () => [...new Set(activeSlots().map(x => x.type).filter(Boolean))];
+
+function suggestTypes(profiles, have, n) {
+  const out = [], kit = [...have];
+  for (let i = 0; i < n; i++) {
+    let top = null, topGain = -1;
+    TYPES.filter(t => !kit.includes(t)).forEach(t => {
+      const value = profiles.reduce((sum, p) => sum + Math.max(bestFor(p, kit).s, p.scores[t]), 0);
+      const tie = profiles.reduce((sum, p) => sum + p.scores[t], 0) / 100;
+      if (value + tie > topGain) { topGain = value + tie; top = t; }
+    });
+    if (!top) break; out.push(top); kit.push(top);
+  }
+  return out;
+}
+function incomingRank(profiles) {
+  const c = {}, bump = t => c[t] = (c[t]||0) + 1;
+  profiles.forEach(p => p.incoming.forEach(t => {
+    if (t === 'ENTROPY') { bump('FIRE'); bump('COLD'); }
+    else if (ARMOUR.includes(t)) bump(t);
+  }));
+  return Object.entries(c).sort((a,b) => b[1] - a[1] || TYPES.indexOf(a[0]) - TYPES.indexOf(b[0])).map(x => x[0]);
+}
+
+function renderTargets() {
+  $('targets').innerHTML = S.targets.map((t, i) => {
+    const f = byName(t.f), p = profile(t);
+    const groups = [CORP, QUASI, BRAM].map(g => `<optgroup label="${g}">${DATA.filter(x => x.g === g).map(x => `<option${x.n === t.f ? ' selected' : ''}>${esc(x.n)}</option>`).join('')}</optgroup>`).join('');
+    const tech = f.g === BRAM ? '<div class="tech na">Any tech level</div>' :
+      `<div class="tech"><button type="button" id="down-${i}" data-tech="${i}" data-d="-1" aria-label="Lower tech level">−</button><output>TL ${t.t}${t.t === 9 ? '+' : ''}</output><button type="button" id="up-${i}" data-tech="${i}" data-d="1" aria-label="Raise tech level">+</button></div>`;
+    const remove = `<button type="button" class="quiet" id="rm-${i}" data-rm="${i}" aria-label="Remove ${esc(t.f)}"${S.targets.length < 2 ? ' disabled' : ''}>✕</button>`;
+    const notes = p.notes.map(n => `<p class="note">${n.text}</p>`).join('');
+    return `<div class="target"><select id="target-${i}" data-target="${i}" aria-label="Target ${i+1}">${groups}</select>${tech}${remove}${notes}</div>`;
+  }).join('');
+  $('addTarget').disabled = S.targets.length >= 4;
+}
+function renderSlots(profiles) {
+  $('servo').setAttribute('aria-pressed', S.servo);
+  $('slots').innerHTML = activeSlots().map((s, i) => {
+    const opts = ['<option value="">Empty</option>'].concat(TYPES.map(t => `<option value="${t}"${s.type === t ? ' selected' : ''}>${label(t)}</option>`)).join('');
+    const imm = s.type ? profiles.filter(p => p.state[s.type] === 'imm').map(p => p.f.n) : [];
+    const warn = imm.length ? `<p class="slot-warn">No damage to ${esc(imm.join(', '))}.</p>` : '';
+    return `<div class="slot"><label for="type-${i}">${SLOTS[i]}</label><select id="type-${i}" data-type="${i}">${opts}</select>${warn}</div>`;
+  }).join('');
+}
+function renderArmour() {
+  $('armour').innerHTML = ARMOUR.map(t => `<button type="button" class="toggle" id="arm-${t}" data-arm="${t}" aria-pressed="${S.armour.includes(t)}">${label(t)}</button>`).join('');
+}
+function renderReadout(profiles) {
+  const kit = chosen();
+  const scored = profiles.filter(p => p.hasData);
+  const dmg = scored.length ? Math.round(100 * scored.reduce((a, p) => a + bestFor(p, kit).s, 0) / scored.length) : 0;
+  let inc = 0, cov = 0;
+  profiles.forEach(p => { const c = coverable(p); inc += c.length; cov += c.filter(covered).length; });
+  const arm = inc ? Math.round(100 * cov / inc) : 0;
+  const lines = profiles.map((p, i) => {
+    const b = bestFor(p, kit), [g, c] = p.hasData ? grade(b.s) : ['No data', 'g-none'];
+    const able = coverable(p), covd = able.filter(covered).length;
+    const tl = p.f.g === BRAM ? '' : ` · TL ${S.targets[i].t}`;
+    return `<div class="tline"><div>${esc(p.f.n)}<small>best: ${b.t ? label(b.t) : 'none'}${tl}</small></div><span class="badge ${c}">${g}</span><span class="cover" title="Incoming damage types your armour covers">${covd}/${able.length}</span></div>`;
+  }).join('');
+
+  const advice = [];
+  profiles.forEach((p, i) => {
+    if (!p.hasData) { advice.push(`The guide lists no armour weakness for ${esc(p.f.n)} at tech level ${S.targets[i].t}.`); return; }
+    if (bestFor(p, kit).s < .3) {
+      const top = TYPES.filter(t => p.scores[t] > .25).sort((a,b) => p.scores[b] - p.scores[a]).slice(0, 3).map(label);
+      advice.push(`Nothing you carry exploits ${esc(p.f.n)}. Try ${top.join(', ')}.`);
+    }
+  });
+  kit.forEach(t => {
+    const res = profiles.filter(p => p.state[t] === 'res').map(p => p.f.n);
+    if (res.length) advice.push(`${label(t)} is heavily resisted by ${esc(res.join(', '))}.`);
+  });
+  const gaps = incomingRank(profiles).filter(t => !S.armour.includes(t)).slice(0, 4).map(label);
+  if (gaps.length) advice.push(`Biggest armour gaps: ${gaps.join(', ')}.`);
+  const other = [...new Set(profiles.flatMap(p => p.incoming).filter(t => !ARMOUR.includes(t) && t !== 'ENTROPY'))].map(label);
+  if (other.length) advice.push(`Also expect ${other.join(', ')}. Armour has no matching resistance listed, so these aren't scored.`);
+  if (!advice.length) advice.push('No gaps found for this mission.');
+
+  $('readout').innerHTML = `<div class="stats">
+    <div class="stat"><b>${dmg}%</b><span>weakness coverage</span><div class="meter"><i style="width:${dmg}%"></i></div></div>
+    <div class="stat"><b>${arm}%</b><span>incoming types resisted</span><div class="meter"><i style="width:${arm}%"></i></div></div>
+  </div><div class="tlist">${lines}</div><ul class="advice">${advice.map(a => `<li>${a}</li>`).join('')}</ul>`;
+}
+function renderGrid(profiles) {
+  const kit = chosen();
+  const value = t => profiles.reduce((a, p) => a + p.scores[t] - (p.state[t] === 'imm' ? .5 : 0), 0);
+  const rows = [...TYPES].sort((a, b) => value(b) - value(a));
+  const head = `<thead><tr><th scope="col">Damage</th>${profiles.map(p => `<th scope="col">${esc(p.f.n)}</th>`).join('')}</tr></thead>`;
+  const cell = (p, t) => {
+    const st = p.state[t];
+    if (st === 'imm') return '<td class="imm">IMM</td>';
+    if (st === 'res') return '<td class="res">RES</td>';
+    if (st === 'disp') return '<td class="res">?</td>';
+    if (st === 'weak') { const n = pips(p.scores[t]), q = p.unsure[t]; return `<td class="pips" aria-label="${n} of 3${q ? ', unconfirmed' : ''}">${'●'.repeat(n)}${q ? '<span class="res">?</span>' : ''}</td>`; }
+    return '<td class="nil">–</td>';
+  };
+  $('grid').innerHTML = head + '<tbody>' + rows.map(t => `<tr class="${kit.includes(t) ? 'mine' : ''}"><th scope="row"><button type="button" id="add-${t}" data-add="${t}">${label(t)}</button></th>${profiles.map(p => cell(p, t)).join('')}</tr>`).join('') + '</tbody>';
+}
+function renderKits() {
+  $('saved').innerHTML = kits.length ? kits.map((k, i) => `<span class="chip"><button type="button" id="load-${i}" data-load="${i}">${esc(k.name)}</button><button type="button" class="quiet" id="del-${i}" data-del="${i}" aria-label="Delete ${esc(k.name)}">✕</button></span>`).join('') : '<p class="hint">No saved kits yet. Name this one and save it to reuse it next run.</p>';
+}
+function topWeak(profiles, n) { return suggestTypes(profiles, [], n).filter(t => profiles.some(p => p.state[t] === 'weak')); }
+function renderBrief(profiles) {
+  const weak = topWeak(profiles, 3), res = incomingRank(profiles).slice(0, 3);
+  const list = a => a.length ? a.map(label).join(' · ') : 'None listed';
+  $('brief').innerHTML = `<div><h2>Top weaknesses</h2><p>${list(weak)}</p></div><div><h2>Top armour resistances</h2><p>${list(res)}</p></div>`;
+  const empty = '<span class="hint">None listed for these targets.</span>';
+  $('recW').innerHTML = '<span class="rec-label">Recommended</span>' + (weak.slice(0, 2).map(t => `<button type="button" class="toggle" id="rec-w-${t}" data-add="${t}" aria-pressed="${chosen().includes(t)}">${label(t)}</button>`).join('') || empty);
+  $('recA').innerHTML = '<span class="rec-label">Recommended</span>' + (res.slice(0, 2).map(t => `<button type="button" class="toggle" id="rec-a-${t}" data-arm="${t}" aria-pressed="${S.armour.includes(t)}">${label(t)}</button>`).join('') || empty);
+}
+function render() {
+  const focus = document.activeElement && document.activeElement.id;
+  const profiles = S.targets.map(profile);
+  renderBrief(profiles); renderTargets(); renderSlots(profiles); renderArmour(); renderReadout(profiles); renderGrid(profiles); renderKits();
+  if (focus && $(focus)) $(focus).focus();
+  store(KEY, S);
+}
+function summary() {
+  const lines = ['Targets: ' + S.targets.map(t => byName(t.f).g === BRAM ? t.f : `${t.f} TL${t.t}`).join('; ')];
+  activeSlots().forEach((s, i) => { if (s.type) lines.push(`${SLOTS[i]}: ${label(s.type)}`); });
+  lines.push('Armour resists: ' + (S.armour.map(label).join(', ') || 'none'));
+  return lines.join('\n');
+}
+
+document.addEventListener('change', e => {
+  const d = e.target.dataset;
+  if (d.target !== undefined) { S.targets[+d.target].f = e.target.value; render(); }
+  if (d.type !== undefined) { S.slots[+d.type].type = e.target.value; render(); }
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.tech !== undefined) { const t = S.targets[+d.tech]; t.t = Math.min(9, Math.max(1, t.t + +d.d)); render(); }
+  else if (d.rm !== undefined) { S.targets.splice(+d.rm, 1); render(); }
+  else if (d.arm) { S.armour = S.armour.includes(d.arm) ? S.armour.filter(t => t !== d.arm) : [...S.armour, d.arm]; render(); }
+  else if (d.add) {
+    if (chosen().includes(d.add)) { say(label(d.add) + ' is already in your kit.'); return; }
+    const free = activeSlots().find(s => !s.type);
+    if (free) { free.type = d.add; say(''); render(); } else say('All slots are full. Set one to Empty first.');
+  }
+  else if (d.load !== undefined) { const k = JSON.parse(JSON.stringify(kits[+d.load])); S = normal({targets:k.targets, slots:k.slots, servo:k.servo, armour:k.armour}); say('Loaded ' + k.name + '.'); render(); }
+  else if (d.del !== undefined) { kits.splice(+d.del, 1); store(KEY + '-kits', kits); renderKits(); }
+});
+$('addTarget').onclick = () => { const used = S.targets.map(t => t.f); S.targets.push({f:DATA.find(x => !used.includes(x.n)).n, t:S.targets[S.targets.length-1].t}); render(); };
+$('suggest').onclick = () => {
+  const profiles = S.targets.map(profile), empty = activeSlots().filter(s => !s.type);
+  suggestTypes(profiles, chosen(), empty.length).forEach((t, i) => empty[i].type = t);
+  let msg = empty.length ? 'Filled the empty slots.' : 'No empty slots to fill.';
+  if (!S.armour.length) { S.armour = incomingRank(profiles).slice(0, 3); msg += ' Picked the top armour resists.'; }
+  say(msg); render();
+};
+$('servo').onclick = () => { S.servo = !S.servo; render(); };
+$('clear').onclick = () => { S.slots = SLOTS.map(() => ({name:'', type:''})); S.armour = []; say('Kit cleared.'); render(); };
+$('save').onclick = () => {
+  const name = $('saveName').value.trim();
+  if (!name) { say('Enter a kit name to save it.'); $('saveName').focus(); return; }
+  kits = kits.filter(k => k.name !== name);
+  kits.push(JSON.parse(JSON.stringify({name, ...S})));
+  store(KEY + '-kits', kits); $('saveName').value = ''; say('Saved ' + name + '.'); renderKits();
+};
+$('copy').onclick = () => {
+  const text = summary(), out = $('copyOut');
+  const manual = () => { out.value = text; out.hidden = false; out.select(); say('Copy the selected text below.'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => { out.hidden = true; say('Summary copied.'); }, manual);
+  else manual();
+};
+render();
+</script>
+
+</body></html>
